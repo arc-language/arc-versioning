@@ -43,6 +43,9 @@ page "Record History - Admin"
     const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
     if !_allowed.has(modelName)
       return { error: "Unknown model", diff: [] }
+    const _diffVid = Number(versionId)
+    if !Number.isInteger(_diffVid) || _diffVid <= 0
+      return { error: "Invalid versionId", diff: [] }
     const ver = db._arc_versions.find(versionId)
     if !ver return { error: "Not found", diff: [] }
     if ver.modelName !== modelName || ver.recordId !== recordId
@@ -111,6 +114,7 @@ page "Record History - Admin"
   @state let reverting = false
   @state let revertDone = false
   @state let revertError = ""
+  @state let total = historyData.total
   @state let loadingMore = false
   @state let loadMoreError = ""
   @state let diffError = ""
@@ -121,7 +125,7 @@ page "Record History - Admin"
         col gap="2px"
           text class="history-title" "Version History"
           if historyError == ""
-            text class="history-meta" "Model: {model} · Record #{id} · {historyData.total} versions total"
+            text class="history-meta" "Model: {model} · Record #{id} · {total} versions total"
           if historyError != ""
             text class="history-meta" "Model: {model} · Record #{id}"
 
@@ -252,6 +256,7 @@ page "Record History - Admin"
                     @versions = refreshed.versions
                     @hasMore = refreshed.hasMore
                     @page = 1
+                    @total = refreshed.total
                 else
                   @revertError = r.error ?? "Revert failed"
               }

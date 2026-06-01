@@ -95,6 +95,11 @@ describe('src/server/versions.arc', () => {
   it('revert route catches transaction errors', () => {
     assert.ok(src.includes("Revert failed"), 'transaction error handler missing')
   })
+
+  it('validates versionId is a positive integer on diff and revert routes', () => {
+    assert.ok(src.includes('Number.isInteger'), 'versionId integer check missing')
+    assert.ok(src.includes("Invalid versionId"), 'versionId error response missing')
+  })
 })
 
 // ── history page file tests ────────────────────────────────────────────────────
@@ -156,6 +161,20 @@ describe('src/pages/history/[model]/[id].arc', () => {
 
   it('revertToVersion catches transaction errors', () => {
     assert.ok(src.includes('Revert failed'), 'transaction error handler missing')
+  })
+
+  it('getVersionDiff validates versionId is a positive integer', () => {
+    assert.ok(src.includes('Number.isInteger'), 'versionId integer check missing')
+    assert.ok(src.includes("Invalid versionId"), 'versionId error response missing')
+  })
+
+  it('total version count is tracked in state and refreshed after revert', () => {
+    assert.ok(src.includes('@state let total'), 'total state var missing')
+    assert.ok(src.includes('@total = refreshed.total'), 'total not refreshed after revert')
+  })
+
+  it('revert on:click uses server error message', () => {
+    assert.ok(src.includes('r.error ?? "Revert failed"'), 'revert error fallback missing')
   })
 
   it('shows distinct forbidden vs generic error messages', () => {
