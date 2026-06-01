@@ -393,6 +393,16 @@ describe('src/pages/history/[model]/[id].arc', () => {
   it('empty diff state shows "No field changes detected." message (gap-027)', () => {
     assert.ok(src.includes('No field changes detected.'), 'empty diff copy missing')
   })
+
+  // ── Round 7 gaps ────────────────────────────────────────────────────────────
+
+  it('empty state shows "No history yet" copy (gap-018)', () => {
+    assert.ok(src.includes('"No history yet"'), 'empty state copy missing')
+  })
+
+  it('toast dismiss button clears revertDone state (gap-026)', () => {
+    assert.ok(src.includes('@revertDone = false'), 'toast dismiss handler missing')
+  })
 })
 
 // ── TypeScript type definitions ────────────────────────────────────────────────
@@ -443,5 +453,15 @@ describe('TypeScript type definitions', () => {
 
   it('ArcVersion.userName is optional and nullable (gap-031)', () => {
     assert.ok(src.includes('userName?: string | null'), 'userName must be optional — raw DB rows omit it')
+  })
+
+  // ── Round 7 gaps ────────────────────────────────────────────────────────────
+
+  it('retentionDays is marked @internal and not-yet-implemented (gap-032)', () => {
+    assert.ok(src.includes('@internal Not yet implemented'), 'retentionDays @internal annotation missing')
+  })
+
+  it('ArcConfigWithVersioning.packages typed as string array (gap-033)', () => {
+    assert.ok(src.includes('packages: string[]'), 'packages must be string[] not a union type')
   })
 })
