@@ -146,6 +146,29 @@ describe('src/server/versions.arc', () => {
       'skipFields set missing — internal fields would appear as noise in diffs'
     )
   })
+
+  // ── Round 3 gaps ────────────────────────────────────────────────────────────
+
+  it('history route clamps page to minimum 1 with Math.max (gap-006)', () => {
+    assert.ok(
+      src.includes('Math.max(1, parseInt(request.query?.page, 10) || 1)'),
+      'page clamping missing — page=0 or page=-1 would produce negative offset'
+    )
+  })
+
+  it('history route calculates offset as (page - 1) * limit (gap-005)', () => {
+    assert.ok(
+      src.includes('const offset = (page - 1) * limit'),
+      'offset formula missing'
+    )
+  })
+
+  it('revert audit entry uses session?.userId with null fallback (gap-010)', () => {
+    assert.ok(
+      src.includes('userId: session?.userId ?? null'),
+      'nullable userId fallback missing — anonymous reverts must record null not undefined'
+    )
+  })
 })
 
 // ── history page file tests ────────────────────────────────────────────────────
@@ -279,6 +302,22 @@ describe('src/pages/history/[model]/[id].arc', () => {
     assert.ok(
       src.includes('@versions = [...versions, ...more.versions]'),
       'load-more append-not-replace pattern missing'
+    )
+  })
+
+  // ── Round 3 gaps ────────────────────────────────────────────────────────────
+
+  it('getVersionDiff returns "Version mismatch" error object with diff array (gap-016)', () => {
+    assert.ok(
+      src.includes('return { error: "Version mismatch", diff: [] }'),
+      'Version mismatch error shape missing in getVersionDiff page fn'
+    )
+  })
+
+  it('after successful revert page cursor resets to 1 (gap-023)', () => {
+    assert.ok(
+      src.includes('@page = 1'),
+      'page cursor reset after revert missing — load-more would skip the new revert entry'
     )
   })
 })
