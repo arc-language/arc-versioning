@@ -130,6 +130,22 @@ describe('src/server/versions.arc', () => {
       'corrupt-data 500 response missing'
     )
   })
+
+  // ── Round 2 gaps ────────────────────────────────────────────────────────────
+
+  it('all routes return 400 "Unknown model" for non-allowlisted model names (gap-001)', () => {
+    assert.ok(
+      src.includes('return json({ error: "Unknown model" }, 400)'),
+      'Unknown model 400 response missing'
+    )
+  })
+
+  it('diff route excludes id/createdAt/updatedAt from field comparison (gap-013)', () => {
+    assert.ok(
+      src.includes('const skipFields = new Set(["id", "createdAt", "updatedAt"])'),
+      'skipFields set missing — internal fields would appear as noise in diffs'
+    )
+  })
 })
 
 // ── history page file tests ────────────────────────────────────────────────────
@@ -240,6 +256,29 @@ describe('src/pages/history/[model]/[id].arc', () => {
     assert.ok(
       src.includes('if v.action != "delete"'),
       'no-revert-on-delete guard missing — delete entries must not have a revert button'
+    )
+  })
+
+  // ── Round 2 gaps ────────────────────────────────────────────────────────────
+
+  it('getHistory only calls count when includeTotal is true (gap-014)', () => {
+    assert.ok(
+      src.includes('const total = includeTotal ? db._arc_versions.count({ where: { modelName, recordId } }) : 0'),
+      'conditional count missing — count should be skipped on load-more calls'
+    )
+  })
+
+  it('getHistory catch block returns full error shape with empty arrays (gap-015)', () => {
+    assert.ok(
+      src.includes('return { error: "Failed to load history", versions: [], hasMore: false, page: 1, total: 0 }'),
+      'getHistory catch-all error shape missing'
+    )
+  })
+
+  it('load-more appends to existing versions rather than replacing them (gap-022)', () => {
+    assert.ok(
+      src.includes('@versions = [...versions, ...more.versions]'),
+      'load-more append-not-replace pattern missing'
     )
   })
 })
