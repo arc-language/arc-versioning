@@ -83,8 +83,8 @@ describe('src/server/versions.arc', () => {
 
   it('all three routes use model allowlist to prevent injection', () => {
     assert.ok(src.includes("typeof db[m]?.update === 'function'"), 'allowlist type guard missing')
-    const allowlistCount = (src.match(/_allowed\d*\.has\(/g) || []).length
-    assert.ok(allowlistCount >= 3, `expected allowlist check on all 3 routes, found ${allowlistCount}`)
+    const allowlistCount = (src.match(/_allowed\.has\(/g) || []).length
+    assert.strictEqual(allowlistCount, 3, `expected allowlist check on exactly 3 routes, found ${allowlistCount}`)
   })
 
   it('revert route wraps update and audit in an invoked transaction', () => {
@@ -101,7 +101,7 @@ describe('src/server/versions.arc', () => {
     assert.ok(src.includes("Invalid versionId"), 'versionId error response missing')
   })
 
-  // ── Round 1 gaps ────────────────────────────────────────────────────────────
+  // ── error responses & data integrity ──────────────────────────────────────
 
   it('revert route strips id/createdAt/updatedAt from snapshot before db.update (gap-009)', () => {
     assert.ok(
@@ -131,7 +131,7 @@ describe('src/server/versions.arc', () => {
     )
   })
 
-  // ── Round 2 gaps ────────────────────────────────────────────────────────────
+  // ── access control & model validation ─────────────────────────────────────
 
   it('all routes return 400 "Unknown model" for non-allowlisted model names (gap-001)', () => {
     assert.ok(
@@ -147,7 +147,7 @@ describe('src/server/versions.arc', () => {
     )
   })
 
-  // ── Round 3 gaps ────────────────────────────────────────────────────────────
+  // ── pagination ─────────────────────────────────────────────────────────────
 
   it('history route clamps page to minimum 1 with Math.max (gap-006)', () => {
     assert.ok(
@@ -170,7 +170,7 @@ describe('src/server/versions.arc', () => {
     )
   })
 
-  // ── 100% sweep ─────────────────────────────────────────────────────────────
+  // ── response shapes & audit trail ──────────────────────────────────────────
 
   it('all findMany calls use orderBy id desc for newest-first order', () => {
     assert.ok(src.includes('orderBy: { id: "desc" }'), 'newest-first orderBy missing')
@@ -207,13 +207,9 @@ describe('src/server/versions.arc', () => {
     assert.ok(src.includes('rows.slice(0, limit)'), 'rows.slice pagination missing')
   })
 
-  // ── Round 6 gaps (versions.arc) ─────────────────────────────────────────────
-
   it('userMap falls back to email then null when name is absent (gap-012)', () => {
     assert.ok(src.includes('u.name || u.email || null'), 'name/email/null fallback chain missing')
   })
-
-  // ── Round 4 gaps ────────────────────────────────────────────────────────────
 
   it('history response includes page field for client cursor tracking (gap-007)', () => {
     assert.ok(
@@ -327,7 +323,7 @@ describe('src/pages/history/[model]/[id].arc', () => {
     assert.ok(src.includes('hasMore'), 'hasMore check missing')
   })
 
-  // ── Round 1 gaps ────────────────────────────────────────────────────────────
+  // ── revert safety guards ────────────────────────────────────────────────────
 
   it('revert button is suppressed for delete-action entries (gap-019)', () => {
     assert.ok(
@@ -336,7 +332,7 @@ describe('src/pages/history/[model]/[id].arc', () => {
     )
   })
 
-  // ── 100% sweep ─────────────────────────────────────────────────────────────
+  // ── UI state & revert flow ──────────────────────────────────────────────────
 
   it('page is declared as "Record History - Admin"', () => {
     assert.ok(src.includes('page "Record History - Admin"'), 'page title declaration missing')
@@ -452,7 +448,7 @@ describe('src/pages/history/[model]/[id].arc', () => {
     assert.ok(src.includes('total'), 'total field missing from getHistory return')
   })
 
-  // ── Round 2 gaps ────────────────────────────────────────────────────────────
+  // ── data fetching & pagination ──────────────────────────────────────────────
 
   it('getHistory only calls count when includeTotal is true (gap-014)', () => {
     assert.ok(
@@ -475,8 +471,6 @@ describe('src/pages/history/[model]/[id].arc', () => {
     )
   })
 
-  // ── Round 3 gaps ────────────────────────────────────────────────────────────
-
   it('getVersionDiff returns "Version mismatch" error object with diff array (gap-016)', () => {
     assert.ok(
       src.includes('return { error: "Version mismatch", diff: [] }'),
@@ -491,7 +485,7 @@ describe('src/pages/history/[model]/[id].arc', () => {
     )
   })
 
-  // ── Round 4 gaps ────────────────────────────────────────────────────────────
+  // ── diff logic & accessibility ──────────────────────────────────────────────
 
   it('revertToVersion catches transaction errors with e?.message fallback (gap-017)', () => {
     assert.ok(
@@ -507,7 +501,7 @@ describe('src/pages/history/[model]/[id].arc', () => {
     assert.ok(src.includes('aria-describedby="history-modal-desc"'), 'aria-describedby missing')
   })
 
-  // ── Round 5 gaps ────────────────────────────────────────────────────────────
+  // ── query safety & caching ──────────────────────────────────────────────────
 
   it('user lookup is capped at Math.min(userIds.length, 20) to prevent unbounded query (gap-011)', () => {
     assert.ok(src.includes('limit: Math.min(userIds.length, 20)'), 'user query cap missing')
@@ -524,7 +518,7 @@ describe('src/pages/history/[model]/[id].arc', () => {
     )
   })
 
-  // ── Round 6 gaps ────────────────────────────────────────────────────────────
+  // ── UI copy & empty states ───────────────────────────────────────────────────
 
   it('anonymous/system entries show "System" label with anon CSS class (gap-020)', () => {
     assert.ok(src.includes('history-user--anon'), 'anon CSS class missing')
@@ -541,8 +535,6 @@ describe('src/pages/history/[model]/[id].arc', () => {
   it('empty diff state shows "No field changes detected." message (gap-027)', () => {
     assert.ok(src.includes('No field changes detected.'), 'empty diff copy missing')
   })
-
-  // ── Round 7 gaps ────────────────────────────────────────────────────────────
 
   it('empty state shows "No history yet" copy (gap-018)', () => {
     assert.ok(src.includes('"No history yet"'), 'empty state copy missing')
@@ -581,13 +573,9 @@ describe('TypeScript type definitions', () => {
     assert.ok(src.includes('export interface ArcConfigWithVersioning'), 'ArcConfigWithVersioning missing')
   })
 
-  // ── Round 4 gaps ────────────────────────────────────────────────────────────
-
   it('ArcVersion.data is typed as nullable string (gap-029)', () => {
     assert.ok(src.includes('data: string | null'), 'data field not nullable - JSON.parse guard relies on this')
   })
-
-  // ── Round 5 gaps ────────────────────────────────────────────────────────────
 
   it('ArcVersion.id is typed as number not string (gap-034)', () => {
     assert.ok(src.includes('id: number'), 'id must be number type - String(v.id) coercions depend on this')
@@ -597,13 +585,9 @@ describe('TypeScript type definitions', () => {
     assert.ok(src.includes('userId: string | null'), 'userId must be nullable - anonymous sessions must be representable')
   })
 
-  // ── Round 6 gaps ────────────────────────────────────────────────────────────
-
   it('ArcVersion.userName is optional and nullable (gap-031)', () => {
     assert.ok(src.includes('userName?: string | null'), 'userName must be optional - raw DB rows omit it')
   })
-
-  // ── Round 7 gaps ────────────────────────────────────────────────────────────
 
   it('retentionDays is not in the public interface (gap-032)', () => {
     assert.ok(!src.includes('retentionDays'), 'retentionDays must not appear in the exported interface - not yet implemented')

@@ -23,8 +23,8 @@
     json({ versions: versions.map(v => ({ ...v, userName: userMap[String(v.userId)] || null })), hasMore, page })
 
   @route get "/versions/:model/:id/:versionId" -> Response
-    const _allowed2 = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
-    if !_allowed2.has(params.model)
+    const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
+    if !_allowed.has(params.model)
       return json({ error: "Unknown model" }, 400)
     const _vid = Number(params.versionId)
     if !Number.isInteger(_vid) || _vid <= 0
@@ -54,8 +54,8 @@
     json({ version: ver, diff })
 
   @route post "/versions/:model/:id/revert/:versionId" -> Response
-    const _allowed3 = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
-    if !_allowed3.has(params.model)
+    const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
+    if !_allowed.has(params.model)
       return json({ error: "Unknown model" }, 400)
     const _vid = Number(params.versionId)
     if !Number.isInteger(_vid) || _vid <= 0
@@ -71,9 +71,8 @@
     catch
       return json({ error: "Version data is corrupt" }, 500)
     const { id, createdAt, updatedAt, ...fields } = snapshot
-    let _revertResult
     try
-      _revertResult = _db.transaction(() => {
+      json(_db.transaction(() => {
         db[params.model].update(params.id, fields)
         db._arc_versions.create({
           modelName: params.model,
@@ -84,7 +83,6 @@
           createdAt: new Date().toISOString()
         })
         return { ok: true, revertedToVersionId: Number(params.versionId) }
-      })()
+      })())
     catch e
       return json({ error: e?.message || "Revert failed" }, 500)
-    json(_revertResult)

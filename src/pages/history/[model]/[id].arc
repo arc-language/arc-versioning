@@ -5,7 +5,7 @@ page "Record History - Admin"
   @param model
   @param id
 
-  @server fn getHistory(modelName: String, recordId: String, page: Number, includeTotal: Boolean) -> Any
+  @server fn getHistory(modelName: string, recordId: string, page: number, includeTotal: boolean) -> Any
     if !session || (session.role !== "admin" && session.role !== "editor")
       return { error: "forbidden", versions: [], hasMore: false, page: 1, total: 0 }
     const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
