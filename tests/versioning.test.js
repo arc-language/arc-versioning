@@ -170,6 +170,12 @@ describe('src/server/versions.arc', () => {
     )
   })
 
+  // ── Round 6 gaps (versions.arc) ─────────────────────────────────────────────
+
+  it('userMap falls back to email then null when name is absent (gap-012)', () => {
+    assert.ok(src.includes('u.name || u.email || null'), 'name/email/null fallback chain missing')
+  })
+
   // ── Round 4 gaps ────────────────────────────────────────────────────────────
 
   it('history response includes page field for client cursor tracking (gap-007)', () => {
@@ -369,6 +375,24 @@ describe('src/pages/history/[model]/[id].arc', () => {
       'diff cache-hit branch missing — every click would fire a new server round-trip'
     )
   })
+
+  // ── Round 6 gaps ────────────────────────────────────────────────────────────
+
+  it('anonymous/system entries show "System" label with anon CSS class (gap-020)', () => {
+    assert.ok(src.includes('history-user--anon'), 'anon CSS class missing')
+    assert.ok(src.includes('"System"'), 'System label missing for anonymous entries')
+  })
+
+  it('modal body discloses that revert preserves history ("nothing is lost") (gap-025)', () => {
+    assert.ok(
+      src.includes('A new revert entry will be added to the history so nothing is lost'),
+      'destructive-action disclosure copy missing from modal'
+    )
+  })
+
+  it('empty diff state shows "No field changes detected." message (gap-027)', () => {
+    assert.ok(src.includes('No field changes detected.'), 'empty diff copy missing')
+  })
 })
 
 // ── TypeScript type definitions ────────────────────────────────────────────────
@@ -413,5 +437,11 @@ describe('TypeScript type definitions', () => {
 
   it('ArcVersion.userId is typed as nullable string (gap-030)', () => {
     assert.ok(src.includes('userId: string | null'), 'userId must be nullable — anonymous sessions must be representable')
+  })
+
+  // ── Round 6 gaps ────────────────────────────────────────────────────────────
+
+  it('ArcVersion.userName is optional and nullable (gap-031)', () => {
+    assert.ok(src.includes('userName?: string | null'), 'userName must be optional — raw DB rows omit it')
   })
 })
