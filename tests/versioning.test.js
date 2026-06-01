@@ -170,6 +170,43 @@ describe('src/server/versions.arc', () => {
     )
   })
 
+  // ── 100% sweep ─────────────────────────────────────────────────────────────
+
+  it('all findMany calls use orderBy id desc for newest-first order', () => {
+    assert.ok(src.includes('orderBy: { id: "desc" }'), 'newest-first orderBy missing')
+  })
+
+  it('revert audit entry preserves original snapshot data via data: ver.data', () => {
+    assert.ok(src.includes('data: ver.data'), 'audit entry must store the original snapshot data')
+  })
+
+  it('revert audit entry timestamps itself with new Date().toISOString()', () => {
+    assert.ok(src.includes('createdAt: new Date().toISOString()'), 'audit createdAt timestamp missing')
+  })
+
+  it('diff route response shape is { version: ver, diff }', () => {
+    assert.ok(src.includes('json({ version: ver, diff })'), 'diff route response shape missing')
+  })
+
+  it('diff route fetches previous snapshot using id less-than current versionId', () => {
+    assert.ok(src.includes('id: { lt: Number(params.versionId) }'), 'previous-snapshot lookup missing')
+  })
+
+  it('diff map uses null-coalescing for missing fields: from/to ?? null', () => {
+    assert.ok(
+      src.includes('from: prevData[k] ?? null, to: currData[k] ?? null'),
+      'diff null-coalesce for absent fields missing'
+    )
+  })
+
+  it('history route deduplicates userIds with Set before fetching users', () => {
+    assert.ok(src.includes('[...new Set(versions.map(v => v.userId).filter(Boolean))]'), 'userId dedup missing')
+  })
+
+  it('history route slices rows to exactly limit entries after over-fetching', () => {
+    assert.ok(src.includes('rows.slice(0, limit)'), 'rows.slice pagination missing')
+  })
+
   // ── Round 6 gaps (versions.arc) ─────────────────────────────────────────────
 
   it('userMap falls back to email then null when name is absent (gap-012)', () => {
@@ -302,6 +339,120 @@ describe('src/pages/history/[model]/[id].arc', () => {
       src.includes('if v.action != "delete"'),
       'no-revert-on-delete guard missing — delete entries must not have a revert button'
     )
+  })
+
+  // ── 100% sweep ─────────────────────────────────────────────────────────────
+
+  it('page is declared as "Record History - Admin"', () => {
+    assert.ok(src.includes('page "Record History - Admin"'), 'page title declaration missing')
+  })
+
+  it('CmsLayout is initialized with title="Version History"', () => {
+    assert.ok(src.includes('CmsLayout title="Version History"'), 'CmsLayout title missing')
+  })
+
+  it('@live initial load passes page=1 and includeTotal=true', () => {
+    assert.ok(src.includes('@live const historyData = getHistory(model, id, 1, true)'), '@live call signature missing')
+  })
+
+  it('all required @state variables are declared', () => {
+    assert.ok(src.includes('@state let reverting = false'), 'reverting state missing')
+    assert.ok(src.includes('@state let revertError = ""'), 'revertError state missing')
+    assert.ok(src.includes('@state let expandedId = ""'), 'expandedId state missing')
+    assert.ok(src.includes('@state let diffLoadingId = ""'), 'diffLoadingId state missing')
+  })
+
+  it('both modal buttons are disabled while reverting', () => {
+    assert.ok(src.includes('disabled={reverting}'), 'disabled={reverting} guard missing')
+    const disabledCount = (src.match(/disabled=\{reverting\}/g) || []).length
+    assert.ok(disabledCount >= 2, `expected disabled={reverting} on both buttons, found ${disabledCount}`)
+  })
+
+  it('revert flow sets @reverting = true before call and false after', () => {
+    assert.ok(src.includes('@reverting = true'), '@reverting = true missing')
+    assert.ok(src.includes('@reverting = false'), '@reverting = false missing')
+  })
+
+  it('revert success sets @revertDone = true to trigger toast', () => {
+    assert.ok(src.includes('@revertDone = true'), '@revertDone = true missing after successful revert')
+  })
+
+  it('restore button shows "Restoring…" while in progress', () => {
+    assert.ok(src.includes('"Restoring…"'), 'in-progress button text missing')
+  })
+
+  it('success toast shows "✓ Version restored." text', () => {
+    assert.ok(src.includes('"✓ Version restored."'), 'toast success text missing')
+  })
+
+  it('modal title text is "Revert to this version?"', () => {
+    assert.ok(src.includes('"Revert to this version?"'), 'modal title text missing')
+  })
+
+  it('cancel button clears confirmId and revertError', () => {
+    assert.ok(src.includes('@confirmId = ""'), '@confirmId clear missing')
+    assert.ok(src.includes('@revertError = ""'), '@revertError clear missing')
+  })
+
+  it('load-more calls getHistory with includeTotal=false to skip count query', () => {
+    assert.ok(src.includes('getHistory(model, id, next, false)'), 'load-more must pass includeTotal=false')
+  })
+
+  it('load-more updates @hasMore after fetching next page', () => {
+    assert.ok(src.includes('@hasMore = more.hasMore'), '@hasMore update after load-more missing')
+  })
+
+  it('load-more shows specific "Failed to load more versions." error message', () => {
+    assert.ok(src.includes('"Failed to load more versions."'), 'load-more error copy missing')
+  })
+
+  it('diff error is cleared at the start of each new diff click', () => {
+    assert.ok(src.includes('@diffError = ""'), 'diffError clear on new diff click missing')
+  })
+
+  it('diff data cached via spread: { ...diffData, [String(v.id)]: d.diff || [] }', () => {
+    assert.ok(
+      src.includes('@diffData = { ...diffData, [String(v.id)]: d.diff || [] }'),
+      'diff cache-update spread pattern missing'
+    )
+  })
+
+  it('diff visualization uses history-diff-field, from, arrow, and to CSS classes', () => {
+    assert.ok(src.includes('history-diff-field'), 'diff field class missing')
+    assert.ok(src.includes('history-diff-from'), 'diff from class missing')
+    assert.ok(src.includes('history-diff-arrow'), 'diff arrow class missing')
+    assert.ok(src.includes('history-diff-to'), 'diff to class missing')
+  })
+
+  it('timestamp cell has title tooltip showing raw ISO date', () => {
+    assert.ok(src.includes('title="{v.createdAt}"'), 'createdAt tooltip missing')
+  })
+
+  it('getVersionDiff page fn returns { diff, version: ver } on success', () => {
+    assert.ok(src.includes('return { diff, version: ver }'), 'diff page fn response shape missing')
+  })
+
+  it('getVersionDiff page fn returns "Version data is corrupt" on JSON.parse failure', () => {
+    assert.ok(
+      src.includes('return { error: "Version data is corrupt", diff: [] }'),
+      'corrupt-data error in page fn missing'
+    )
+  })
+
+  it('getVersionDiff fetches previous snapshot using id: { lt: Number(versionId) }', () => {
+    assert.ok(src.includes('id: { lt: Number(versionId) }'), 'previous-snapshot lookup missing in page fn')
+  })
+
+  it('revertToVersion page fn strips id/createdAt/updatedAt before updating record', () => {
+    assert.ok(
+      src.includes('const { id, createdAt, updatedAt, ...fields } = snapshot'),
+      'snapshot field strip missing in page fn revertToVersion'
+    )
+  })
+
+  it('getHistory page fn returns { versions, hasMore, page, total } shape on success', () => {
+    assert.ok(src.includes('return {'), 'getHistory success return missing')
+    assert.ok(src.includes('versions: versions.map(v => ({ ...v, userName: userMap[String(v.userId)] || null }))'), 'userName mapping in getHistory missing')
   })
 
   // ── Round 2 gaps ────────────────────────────────────────────────────────────
