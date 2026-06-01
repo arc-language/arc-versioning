@@ -57,8 +57,8 @@
     const _allowed3 = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
     if !_allowed3.has(params.model)
       return json({ error: "Unknown model" }, 400)
-    const _revertVid = Number(params.versionId)
-    if !Number.isInteger(_revertVid) || _revertVid <= 0
+    const _vid = Number(params.versionId)
+    if !Number.isInteger(_vid) || _vid <= 0
       return json({ error: "Invalid versionId" }, 400)
     const ver = db._arc_versions.find(params.versionId)
     if !ver
@@ -86,5 +86,5 @@
         return { ok: true, revertedToVersionId: Number(params.versionId) }
       })()
     catch e
-      return json({ error: "Revert failed" }, 500)
+      return json({ error: e?.message || "Revert failed" }, 500)
     json(_revertResult)

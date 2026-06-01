@@ -35,6 +35,7 @@ page "Record History - Admin"
         total
       }
     catch e
+      console.warn('[arc-versioning] getHistory failed:', e?.message)
       return { error: "Failed to load history", versions: [], hasMore: false, page: 1, total: 0 }
 
   @server fn getVersionDiff(versionId: String, modelName: String, recordId: String) -> Any
@@ -43,8 +44,8 @@ page "Record History - Admin"
     const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
     if !_allowed.has(modelName)
       return { error: "Unknown model", diff: [] }
-    const _diffVid = Number(versionId)
-    if !Number.isInteger(_diffVid) || _diffVid <= 0
+    const _vid = Number(versionId)
+    if !Number.isInteger(_vid) || _vid <= 0
       return { error: "Invalid versionId", diff: [] }
     const ver = db._arc_versions.find(versionId)
     if !ver return { error: "Not found", diff: [] }
@@ -62,8 +63,8 @@ page "Record History - Admin"
       currData = JSON.parse(ver.data || "{}")
     catch
       return { error: "Version data is corrupt", diff: [] }
-    const skip = new Set(["id", "createdAt", "updatedAt"])
-    const allKeys = [...new Set([...Object.keys(prevData), ...Object.keys(currData)])].filter(k => !skip.has(k))
+    const skipFields = new Set(["id", "createdAt", "updatedAt"])
+    const allKeys = [...new Set([...Object.keys(prevData), ...Object.keys(currData)])].filter(k => !skipFields.has(k))
     const diff = allKeys
       .filter(k => JSON.stringify(prevData[k]) !== JSON.stringify(currData[k]))
       .map(k => ({ field: k, from: prevData[k] ?? null, to: currData[k] ?? null }))

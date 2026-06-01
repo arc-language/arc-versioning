@@ -37,7 +37,7 @@ describe('arc-versioning package index', () => {
 describe('src/server/versions.arc', () => {
   const src = fs.readFileSync(path.join(__dirname, '../src/server/versions.arc'), 'utf8')
 
-  it('file exists', () => {
+  it('versions.arc is non-empty', () => {
     assert.ok(src.length > 0, 'versions.arc is empty')
   })
 
@@ -106,7 +106,7 @@ describe('src/server/versions.arc', () => {
   it('revert route strips id/createdAt/updatedAt from snapshot before db.update (gap-009)', () => {
     assert.ok(
       src.includes('const { id, createdAt, updatedAt, ...fields } = snapshot'),
-      'snapshot field strip missing — revert would overwrite primary key with historic id'
+      'snapshot field strip missing - revert would overwrite primary key with historic id'
     )
   })
 
@@ -143,7 +143,7 @@ describe('src/server/versions.arc', () => {
   it('diff route excludes id/createdAt/updatedAt from field comparison (gap-013)', () => {
     assert.ok(
       src.includes('const skipFields = new Set(["id", "createdAt", "updatedAt"])'),
-      'skipFields set missing — internal fields would appear as noise in diffs'
+      'skipFields set missing - internal fields would appear as noise in diffs'
     )
   })
 
@@ -152,7 +152,7 @@ describe('src/server/versions.arc', () => {
   it('history route clamps page to minimum 1 with Math.max (gap-006)', () => {
     assert.ok(
       src.includes('Math.max(1, parseInt(request.query?.page, 10) || 1)'),
-      'page clamping missing — page=0 or page=-1 would produce negative offset'
+      'page clamping missing - page=0 or page=-1 would produce negative offset'
     )
   })
 
@@ -166,7 +166,7 @@ describe('src/server/versions.arc', () => {
   it('revert audit entry uses session?.userId with null fallback (gap-010)', () => {
     assert.ok(
       src.includes('userId: session?.userId ?? null'),
-      'nullable userId fallback missing — anonymous reverts must record null not undefined'
+      'nullable userId fallback missing - anonymous reverts must record null not undefined'
     )
   })
 
@@ -236,7 +236,7 @@ describe('src/pages/history/[model]/[id].arc', () => {
   const pagePath = path.join(__dirname, '../src/pages/history/[model]/[id].arc')
   const src = fs.readFileSync(pagePath, 'utf8')
 
-  it('file exists', () => {
+  it('history page is non-empty', () => {
     assert.ok(src.length > 0, 'history page is empty')
   })
 
@@ -247,7 +247,7 @@ describe('src/pages/history/[model]/[id].arc', () => {
 
   it('uses CmsLayout', () => {
     assert.ok(src.includes('import CmsLayout'), 'CmsLayout import missing')
-    assert.ok(src.includes('CmsLayout'), 'CmsLayout usage missing')
+    assert.ok(src.includes('CmsLayout title='), 'CmsLayout not used as a component')
   })
 
   it('loads history via getHistory server fn', () => {
@@ -337,7 +337,7 @@ describe('src/pages/history/[model]/[id].arc', () => {
   it('revert button is suppressed for delete-action entries (gap-019)', () => {
     assert.ok(
       src.includes('if v.action != "delete"'),
-      'no-revert-on-delete guard missing — delete entries must not have a revert button'
+      'no-revert-on-delete guard missing - delete entries must not have a revert button'
     )
   })
 
@@ -460,7 +460,7 @@ describe('src/pages/history/[model]/[id].arc', () => {
   it('getHistory only calls count when includeTotal is true (gap-014)', () => {
     assert.ok(
       src.includes('const total = includeTotal ? db._arc_versions.count({ where: { modelName, recordId } }) : 0'),
-      'conditional count missing — count should be skipped on load-more calls'
+      'conditional count missing - count should be skipped on load-more calls'
     )
   })
 
@@ -490,7 +490,7 @@ describe('src/pages/history/[model]/[id].arc', () => {
   it('after successful revert page cursor resets to 1 (gap-023)', () => {
     assert.ok(
       src.includes('@page = 1'),
-      'page cursor reset after revert missing — load-more would skip the new revert entry'
+      'page cursor reset after revert missing - load-more would skip the new revert entry'
     )
   })
 
@@ -523,7 +523,7 @@ describe('src/pages/history/[model]/[id].arc', () => {
   it('diff toggle short-circuits to show cached diff without a server call (gap-028)', () => {
     assert.ok(
       src.includes('else if diffData[String(v.id)]'),
-      'diff cache-hit branch missing — every click would fire a new server round-trip'
+      'diff cache-hit branch missing - every click would fire a new server round-trip'
     )
   })
 
@@ -562,7 +562,7 @@ describe('TypeScript type definitions', () => {
   const typesPath = path.join(__dirname, '../src/types/index.d.ts')
   const src = fs.readFileSync(typesPath, 'utf8')
 
-  it('types file exists', () => {
+  it('types index.d.ts is non-empty', () => {
     assert.ok(src.length > 0, 'types file is empty')
   })
 
@@ -587,23 +587,23 @@ describe('TypeScript type definitions', () => {
   // ── Round 4 gaps ────────────────────────────────────────────────────────────
 
   it('ArcVersion.data is typed as nullable string (gap-029)', () => {
-    assert.ok(src.includes('data: string | null'), 'data field not nullable — JSON.parse guard relies on this')
+    assert.ok(src.includes('data: string | null'), 'data field not nullable - JSON.parse guard relies on this')
   })
 
   // ── Round 5 gaps ────────────────────────────────────────────────────────────
 
   it('ArcVersion.id is typed as number not string (gap-034)', () => {
-    assert.ok(src.includes('id: number'), 'id must be number type — String(v.id) coercions depend on this')
+    assert.ok(src.includes('id: number'), 'id must be number type - String(v.id) coercions depend on this')
   })
 
   it('ArcVersion.userId is typed as nullable string (gap-030)', () => {
-    assert.ok(src.includes('userId: string | null'), 'userId must be nullable — anonymous sessions must be representable')
+    assert.ok(src.includes('userId: string | null'), 'userId must be nullable - anonymous sessions must be representable')
   })
 
   // ── Round 6 gaps ────────────────────────────────────────────────────────────
 
   it('ArcVersion.userName is optional and nullable (gap-031)', () => {
-    assert.ok(src.includes('userName?: string | null'), 'userName must be optional — raw DB rows omit it')
+    assert.ok(src.includes('userName?: string | null'), 'userName must be optional - raw DB rows omit it')
   })
 
   // ── Round 7 gaps ────────────────────────────────────────────────────────────

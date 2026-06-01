@@ -16,7 +16,7 @@ export interface VersioningConfig {
   /** Model table names to exclude from versioning. Default: [] */
   excludeModels?: string[]
   /**
-   * @internal Not yet implemented — reserved for a future retention policy.
+   * @internal Not yet implemented - reserved for a future retention policy.
    * Do not rely on this field having any effect.
    */
   retentionDays?: number | null
