@@ -352,6 +352,23 @@ describe('src/pages/history/[model]/[id].arc', () => {
     assert.ok(src.includes('aria-labelledby="history-modal-title"'), 'aria-labelledby missing')
     assert.ok(src.includes('aria-describedby="history-modal-desc"'), 'aria-describedby missing')
   })
+
+  // ── Round 5 gaps ────────────────────────────────────────────────────────────
+
+  it('user lookup is capped at Math.min(userIds.length, 20) to prevent unbounded query (gap-011)', () => {
+    assert.ok(src.includes('limit: Math.min(userIds.length, 20)'), 'user query cap missing')
+  })
+
+  it('load-more button is disabled while loading to prevent duplicate requests (gap-021)', () => {
+    assert.ok(src.includes('disabled={loadingMore}'), 'loadingMore disabled guard missing')
+  })
+
+  it('diff toggle short-circuits to show cached diff without a server call (gap-028)', () => {
+    assert.ok(
+      src.includes('else if diffData[String(v.id)]'),
+      'diff cache-hit branch missing — every click would fire a new server round-trip'
+    )
+  })
 })
 
 // ── TypeScript type definitions ────────────────────────────────────────────────
@@ -386,5 +403,15 @@ describe('TypeScript type definitions', () => {
 
   it('ArcVersion.data is typed as nullable string (gap-029)', () => {
     assert.ok(src.includes('data: string | null'), 'data field not nullable — JSON.parse guard relies on this')
+  })
+
+  // ── Round 5 gaps ────────────────────────────────────────────────────────────
+
+  it('ArcVersion.id is typed as number not string (gap-034)', () => {
+    assert.ok(src.includes('id: number'), 'id must be number type — String(v.id) coercions depend on this')
+  })
+
+  it('ArcVersion.userId is typed as nullable string (gap-030)', () => {
+    assert.ok(src.includes('userId: string | null'), 'userId must be nullable — anonymous sessions must be representable')
   })
 })
