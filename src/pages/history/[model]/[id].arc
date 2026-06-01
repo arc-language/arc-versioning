@@ -6,6 +6,8 @@ page "Record History - Admin"
   @param id
 
   @server fn getHistory(modelName: String, recordId: String, page: Number, includeTotal: Boolean) -> Any
+    if !session || (session.role !== "admin" && session.role !== "editor")
+      return { error: "forbidden", versions: [], hasMore: false, page: 1, total: 0 }
     try
       const limit = 20
       const offset = (page - 1) * limit
@@ -33,6 +35,8 @@ page "Record History - Admin"
       return { error: "Failed to load history", versions: [], hasMore: false, page: 1, total: 0 }
 
   @server fn getVersionDiff(versionId: String, modelName: String, recordId: String) -> Any
+    if !session || (session.role !== "admin" && session.role !== "editor")
+      return { error: "forbidden", diff: [] }
     const ver = db._arc_versions.find(versionId)
     if !ver return { error: "Not found", diff: [] }
     if ver.modelName !== modelName || ver.recordId !== recordId
@@ -59,6 +63,9 @@ page "Record History - Admin"
   @server fn revertToVersion(versionId: String, modelName: String, recordId: String) -> Any
     if !session || (session.role !== "admin" && session.role !== "editor")
       return { error: "forbidden" }
+    const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_')))
+    if !_allowed.has(modelName)
+      return { error: "Unknown model" }
     const ver = db._arc_versions.find(versionId)
     if !ver return { error: "Version not found" }
     if ver.modelName !== modelName || ver.recordId !== recordId
@@ -69,16 +76,18 @@ page "Record History - Admin"
     catch
       return { error: "Version data is corrupt" }
     const { id, createdAt, updatedAt, ...fields } = snapshot
-    db[modelName].update(recordId, fields)
-    db._arc_versions.create({
-      modelName,
-      recordId,
-      action: "revert",
-      data: ver.data,
-      userId: session?.userId ?? null,
-      createdAt: new Date().toISOString()
-    })
-    return { ok: true }
+    return _db.transaction(() => {
+      db[modelName].update(recordId, fields)
+      db._arc_versions.create({
+        modelName,
+        recordId,
+        action: "revert",
+        data: ver.data,
+        userId: session?.userId ?? null,
+        createdAt: new Date().toISOString()
+      })
+      return { ok: true }
+    })()
 
   @live const historyData = getHistory(model, id, 1, true)
 
@@ -196,7 +205,11 @@ page "Record History - Admin"
             text class="history-load-error" "Diff failed: {diffError}"
 
       if confirmId != ""
-        col class="history-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="history-modal-title" aria-describedby="history-modal-desc"
+        col class="history-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="history-modal-title" aria-describedby="history-modal-desc" on:keydown={
+          if event.key == "Escape"
+            @confirmId = ""
+            @revertError = ""
+        }
           col class="!card history-modal" p="28px" gap="16px"
             text id="history-modal-title" class="history-modal-title" "Revert to this version?"
             text id="history-modal-desc" class="history-modal-body" "The record will be restored to the snapshot from this version. A new revert entry will be added to the history so nothing is lost."
@@ -205,7 +218,7 @@ page "Record History - Admin"
               text class="history-modal-error" "{revertError}"
 
             row gap="10px" justify="flex-end"
-              button class="!btn !btn--ghost" disabled={reverting} on:click={
+              button class="!btn !btn--ghost" autofocus disabled={reverting} on:click={
                 @confirmId = ""
                 @revertError = ""
               } "Cancel"

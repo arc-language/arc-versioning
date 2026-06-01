@@ -45,6 +45,9 @@
     json({ version: ver, diff })
 
   @route post "/versions/:model/:id/revert/:versionId" -> Response
+    const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_')))
+    if !_allowed.has(params.model)
+      return json({ error: "Unknown model" }, 400)
     const ver = db._arc_versions.find(params.versionId)
     if !ver
       return json({ error: "Version not found" }, 404)
@@ -56,13 +59,16 @@
     catch
       return json({ error: "Version data is corrupt" }, 500)
     const { id, createdAt, updatedAt, ...fields } = snapshot
-    db[params.model].update(params.id, fields)
-    db._arc_versions.create({
-      modelName: params.model,
-      recordId: params.id,
-      action: "revert",
-      data: ver.data,
-      userId: session?.userId ?? null,
-      createdAt: new Date().toISOString()
-    })
-    json({ ok: true, revertedToVersionId: Number(params.versionId) })
+    const _revertResult = _db.transaction(() => {
+      db[params.model].update(params.id, fields)
+      db._arc_versions.create({
+        modelName: params.model,
+        recordId: params.id,
+        action: "revert",
+        data: ver.data,
+        userId: session?.userId ?? null,
+        createdAt: new Date().toISOString()
+      })
+      return { ok: true, revertedToVersionId: Number(params.versionId) }
+    })()
+    json(_revertResult)

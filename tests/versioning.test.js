@@ -80,6 +80,15 @@ describe('src/server/versions.arc', () => {
     assert.ok(src.includes('ver.modelName !== params.model'), 'model mismatch check missing')
     assert.ok(src.includes('ver.recordId !== params.id'), 'recordId mismatch check missing')
   })
+
+  it('revert route uses model allowlist to prevent injection', () => {
+    assert.ok(src.includes("!m.startsWith('_arc_')"), 'allowlist filter missing')
+    assert.ok(src.includes('_allowed.has(params.model)'), 'allowlist check missing')
+  })
+
+  it('revert route wraps update and audit in a transaction', () => {
+    assert.ok(src.includes('_db.transaction'), 'transaction missing')
+  })
 })
 
 // ── history page file tests ────────────────────────────────────────────────────
@@ -114,6 +123,32 @@ describe('src/pages/history/[model]/[id].arc', () => {
   it('revertToVersion guards against non-admin/editor', () => {
     assert.ok(src.includes("session.role !== \"admin\""), 'role check missing')
     assert.ok(src.includes("session.role !== \"editor\""), 'editor role check missing')
+  })
+
+  it('getHistory and getVersionDiff guard against non-admin/editor', () => {
+    assert.ok(src.includes('@server fn getHistory'), 'getHistory fn missing')
+    assert.ok(src.includes('@server fn getVersionDiff'), 'getVersionDiff fn missing')
+    const getHistoryIdx = src.indexOf('@server fn getHistory')
+    const getVersionDiffIdx = src.indexOf('@server fn getVersionDiff')
+    const revertIdx = src.indexOf('@server fn revertToVersion')
+    const historyGuard = src.slice(getHistoryIdx, getVersionDiffIdx)
+    const diffGuard = src.slice(getVersionDiffIdx, revertIdx)
+    assert.ok(historyGuard.includes('session.role !== "admin"'), 'getHistory auth guard missing')
+    assert.ok(diffGuard.includes('session.role !== "admin"'), 'getVersionDiff auth guard missing')
+  })
+
+  it('revertToVersion uses model allowlist to prevent injection', () => {
+    assert.ok(src.includes("!m.startsWith('_arc_')"), 'allowlist filter missing')
+    assert.ok(src.includes('_allowed.has(modelName)'), 'allowlist check missing')
+  })
+
+  it('revertToVersion wraps update and audit in a transaction', () => {
+    assert.ok(src.includes('_db.transaction'), 'transaction missing')
+  })
+
+  it('modal has Escape key handler and autofocus on cancel', () => {
+    assert.ok(src.includes('event.key == "Escape"'), 'Escape handler missing')
+    assert.ok(src.includes('autofocus'), 'autofocus missing')
   })
 
   it('renders action badges for all four action types', () => {
