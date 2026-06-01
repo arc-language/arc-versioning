@@ -35,6 +35,8 @@ page "Record History - Admin"
   @server fn getVersionDiff(versionId: String, modelName: String, recordId: String) -> Any
     const ver = db._arc_versions.find(versionId)
     if !ver return { error: "Not found", diff: [] }
+    if ver.modelName !== modelName || ver.recordId !== recordId
+      return { error: "Version mismatch", diff: [] }
     const prev = db._arc_versions.findMany({
       where: { modelName, recordId, id: { lt: Number(versionId) } },
       orderBy: { id: "desc" },
@@ -93,6 +95,7 @@ page "Record History - Admin"
   @state let revertError = ""
   @state let loadingMore = false
   @state let loadMoreError = ""
+  @state let diffError = ""
 
   CmsLayout title="Version History" active=""
     col gap="20px"
@@ -137,6 +140,7 @@ page "Record History - Admin"
 
                 row class="history-actions" gap="8px" align="center" ml="auto"
                   button class="!btn !btn--ghost !btn--sm" on:click={
+                    @diffError = ""
                     if expandedId == String(v.id)
                       @expandedId = ""
                     else if diffData[String(v.id)]
@@ -144,14 +148,17 @@ page "Record History - Admin"
                     else
                       @diffLoadingId = String(v.id)
                       const d = getVersionDiff(String(v.id), model, id)
-                      @diffData = { ...diffData, [String(v.id)]: d.diff || [] }
                       @diffLoadingId = ""
-                      @expandedId = String(v.id)
+                      if d.error
+                        @diffError = d.error
+                      else
+                        @diffData = { ...diffData, [String(v.id)]: d.diff || [] }
+                        @expandedId = String(v.id)
                   }
                     if diffLoadingId == String(v.id) "Loading…" else "Diff"
 
                   if v.action != "delete"
-                    button class="!btn !btn--ghost !btn--sm history-revert-btn" on:click={
+                    button class="!btn !btn--ghost !btn--sm history-revert-btn" aria-label="Revert to version {v.id}" on:click={
                       @confirmId = String(v.id)
                     } "Revert"
 
@@ -185,12 +192,14 @@ page "Record History - Admin"
             if loadingMore "Loading…" else "Load more"
           if loadMoreError != ""
             text class="history-load-error" "{loadMoreError}"
+          if diffError != ""
+            text class="history-load-error" "Diff failed: {diffError}"
 
       if confirmId != ""
-        col class="history-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="history-modal-title"
+        col class="history-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="history-modal-title" aria-describedby="history-modal-desc"
           col class="!card history-modal" p="28px" gap="16px"
             text id="history-modal-title" class="history-modal-title" "Revert to this version?"
-            text class="history-modal-body" "The record will be restored to the snapshot from this version. A new revert entry will be added to the history so nothing is lost."
+            text id="history-modal-desc" class="history-modal-body" "The record will be restored to the snapshot from this version. A new revert entry will be added to the history so nothing is lost."
 
             if revertError != ""
               text class="history-modal-error" "{revertError}"
@@ -209,9 +218,10 @@ page "Record History - Admin"
                   @confirmId = ""
                   @revertDone = true
                   const refreshed = getHistory(model, id, 1, true)
-                  @versions = refreshed.versions
-                  @hasMore = refreshed.hasMore
-                  @page = 1
+                  if !refreshed.error
+                    @versions = refreshed.versions
+                    @hasMore = refreshed.hasMore
+                    @page = 1
                 else
                   @revertError = r.error ?? "Revert failed"
               }
