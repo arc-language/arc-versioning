@@ -38,7 +38,7 @@ page "Record History - Admin"
       console.warn('[arc-versioning] getHistory failed:', e?.message)
       return { error: "Failed to load history", versions: [], hasMore: false, page: 1, total: 0 }
 
-  @server fn getVersionDiff(versionId: String, modelName: String, recordId: String) -> Any
+  @server fn getVersionDiff(versionId: string, modelName: string, recordId: string) -> Any
     if !session || (session.role !== "admin" && session.role !== "editor")
       return { error: "forbidden", diff: [] }
     const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
@@ -70,7 +70,7 @@ page "Record History - Admin"
       .map(k => ({ field: k, from: prevData[k] ?? null, to: currData[k] ?? null }))
     return { diff, version: ver }
 
-  @server fn revertToVersion(versionId: String, modelName: String, recordId: String) -> Any
+  @server fn revertToVersion(versionId: string, modelName: string, recordId: string) -> Any
     if !session || (session.role !== "admin" && session.role !== "editor")
       return { error: "forbidden" }
     const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))

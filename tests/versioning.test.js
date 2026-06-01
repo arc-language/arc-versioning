@@ -103,28 +103,28 @@ describe('src/server/versions.arc', () => {
 
   // ── error responses & data integrity ──────────────────────────────────────
 
-  it('revert route strips id/createdAt/updatedAt from snapshot before db.update (gap-009)', () => {
+  it('revert route strips id/createdAt/updatedAt from snapshot before db.update', () => {
     assert.ok(
       src.includes('const { id, createdAt, updatedAt, ...fields } = snapshot'),
       'snapshot field strip missing - revert would overwrite primary key with historic id'
     )
   })
 
-  it('diff route returns 400 when versionId does not match model+recordId (gap-003)', () => {
+  it('diff route returns 400 when versionId does not match model+recordId', () => {
     assert.ok(
       src.includes('return json({ error: "Version does not match record" }, 400)'),
       'mismatch 400 response missing on diff route'
     )
   })
 
-  it('all version-lookup routes return 404 when record is not found (gap-002)', () => {
+  it('all version-lookup routes return 404 when record is not found', () => {
     assert.ok(
       src.includes('return json({ error: "Version not found" }, 404)'),
       '404 response missing for not-found version'
     )
   })
 
-  it('routes return 500 with "Version data is corrupt" on JSON.parse failure (gap-004)', () => {
+  it('routes return 500 with "Version data is corrupt" on JSON.parse failure', () => {
     assert.ok(
       src.includes('return json({ error: "Version data is corrupt" }, 500)'),
       'corrupt-data 500 response missing'
@@ -133,14 +133,14 @@ describe('src/server/versions.arc', () => {
 
   // ── access control & model validation ─────────────────────────────────────
 
-  it('all routes return 400 "Unknown model" for non-allowlisted model names (gap-001)', () => {
+  it('all routes return 400 "Unknown model" for non-allowlisted model names', () => {
     assert.ok(
       src.includes('return json({ error: "Unknown model" }, 400)'),
       'Unknown model 400 response missing'
     )
   })
 
-  it('diff route excludes id/createdAt/updatedAt from field comparison (gap-013)', () => {
+  it('diff route excludes id/createdAt/updatedAt from field comparison', () => {
     assert.ok(
       src.includes('const skipFields = new Set(["id", "createdAt", "updatedAt"])'),
       'skipFields set missing - internal fields would appear as noise in diffs'
@@ -149,21 +149,21 @@ describe('src/server/versions.arc', () => {
 
   // ── pagination ─────────────────────────────────────────────────────────────
 
-  it('history route clamps page to minimum 1 with Math.max (gap-006)', () => {
+  it('history route clamps page to minimum 1 with Math.max', () => {
     assert.ok(
       src.includes('Math.max(1, parseInt(request.query?.page, 10) || 1)'),
       'page clamping missing - page=0 or page=-1 would produce negative offset'
     )
   })
 
-  it('history route calculates offset as (page - 1) * limit (gap-005)', () => {
+  it('history route calculates offset as (page - 1) * limit', () => {
     assert.ok(
       src.includes('const offset = (page - 1) * limit'),
       'offset formula missing'
     )
   })
 
-  it('revert audit entry uses session?.userId with null fallback (gap-010)', () => {
+  it('revert audit entry uses session?.userId with null fallback', () => {
     assert.ok(
       src.includes('userId: session?.userId ?? null'),
       'nullable userId fallback missing - anonymous reverts must record null not undefined'
@@ -207,18 +207,18 @@ describe('src/server/versions.arc', () => {
     assert.ok(src.includes('rows.slice(0, limit)'), 'rows.slice pagination missing')
   })
 
-  it('userMap falls back to email then null when name is absent (gap-012)', () => {
+  it('userMap falls back to email then null when name is absent', () => {
     assert.ok(src.includes('u.name || u.email || null'), 'name/email/null fallback chain missing')
   })
 
-  it('history response includes page field for client cursor tracking (gap-007)', () => {
+  it('history response includes page field for client cursor tracking', () => {
     assert.ok(
       src.includes('json({ versions: versions.map(v => ({ ...v, userName: userMap[String(v.userId)] || null })), hasMore, page })'),
       'page field missing from history response shape'
     )
   })
 
-  it('revert response includes revertedToVersionId field (gap-008)', () => {
+  it('revert response includes revertedToVersionId field', () => {
     assert.ok(
       src.includes('revertedToVersionId: Number(params.versionId)'),
       'revertedToVersionId missing from revert success response'
@@ -325,7 +325,7 @@ describe('src/pages/history/[model]/[id].arc', () => {
 
   // ── revert safety guards ────────────────────────────────────────────────────
 
-  it('revert button is suppressed for delete-action entries (gap-019)', () => {
+  it('revert button is suppressed for delete-action entries', () => {
     assert.ok(
       src.includes('if v.action != "delete"'),
       'no-revert-on-delete guard missing - delete entries must not have a revert button'
@@ -442,43 +442,47 @@ describe('src/pages/history/[model]/[id].arc', () => {
   })
 
   it('getHistory page fn returns { versions, hasMore, page, total } shape on success', () => {
-    assert.ok(src.includes('versions: versions.map(v => ({ ...v, userName: userMap[String(v.userId)] || null }))'), 'versions field with userName mapping missing from getHistory return')
-    assert.ok(/\bhasMore,/.test(src), 'hasMore shorthand property missing from getHistory return')
-    assert.ok(/\bpage,/.test(src), 'page shorthand property missing from getHistory return')
-    assert.ok(src.includes('total'), 'total field missing from getHistory return')
+    assert.ok(
+      src.includes('versions: versions.map(v => ({ ...v, userName: userMap[String(v.userId)] || null }))'),
+      'versions field with userName mapping missing from getHistory return'
+    )
+    assert.ok(
+      src.includes('hasMore,\n        page,\n        total'),
+      'hasMore, page, and total fields missing from getHistory return shape'
+    )
   })
 
   // ── data fetching & pagination ──────────────────────────────────────────────
 
-  it('getHistory only calls count when includeTotal is true (gap-014)', () => {
+  it('getHistory only calls count when includeTotal is true', () => {
     assert.ok(
       src.includes('const total = includeTotal ? db._arc_versions.count({ where: { modelName, recordId } }) : 0'),
       'conditional count missing - count should be skipped on load-more calls'
     )
   })
 
-  it('getHistory catch block returns full error shape with empty arrays (gap-015)', () => {
+  it('getHistory catch block returns full error shape with empty arrays', () => {
     assert.ok(
       src.includes('return { error: "Failed to load history", versions: [], hasMore: false, page: 1, total: 0 }'),
       'getHistory catch-all error shape missing'
     )
   })
 
-  it('load-more appends to existing versions rather than replacing them (gap-022)', () => {
+  it('load-more appends to existing versions rather than replacing them', () => {
     assert.ok(
       src.includes('@versions = [...versions, ...more.versions]'),
       'load-more append-not-replace pattern missing'
     )
   })
 
-  it('getVersionDiff returns "Version mismatch" error object with diff array (gap-016)', () => {
+  it('getVersionDiff returns "Version mismatch" error object with diff array', () => {
     assert.ok(
       src.includes('return { error: "Version mismatch", diff: [] }'),
       'Version mismatch error shape missing in getVersionDiff page fn'
     )
   })
 
-  it('after successful revert page cursor resets to 1 (gap-023)', () => {
+  it('after successful revert page cursor resets to 1', () => {
     assert.ok(
       src.includes('@page = 1'),
       'page cursor reset after revert missing - load-more would skip the new revert entry'
@@ -487,14 +491,14 @@ describe('src/pages/history/[model]/[id].arc', () => {
 
   // ── diff logic & accessibility ──────────────────────────────────────────────
 
-  it('revertToVersion catches transaction errors with e?.message fallback (gap-017)', () => {
+  it('revertToVersion catches transaction errors with e?.message fallback', () => {
     assert.ok(
       src.includes('return { error: e?.message || "Revert failed" }'),
       'transaction error message propagation missing in page server fn'
     )
   })
 
-  it('confirmation modal has full ARIA attributes for screen readers (gap-024)', () => {
+  it('confirmation modal has full ARIA attributes for screen readers', () => {
     assert.ok(src.includes('role="dialog"'), 'role=dialog missing')
     assert.ok(src.includes('aria-modal="true"'), 'aria-modal missing')
     assert.ok(src.includes('aria-labelledby="history-modal-title"'), 'aria-labelledby missing')
@@ -503,15 +507,15 @@ describe('src/pages/history/[model]/[id].arc', () => {
 
   // ── query safety & caching ──────────────────────────────────────────────────
 
-  it('user lookup is capped at Math.min(userIds.length, 20) to prevent unbounded query (gap-011)', () => {
+  it('user lookup is capped at Math.min(userIds.length, 20) to prevent unbounded query', () => {
     assert.ok(src.includes('limit: Math.min(userIds.length, 20)'), 'user query cap missing')
   })
 
-  it('load-more button is disabled while loading to prevent duplicate requests (gap-021)', () => {
+  it('load-more button is disabled while loading to prevent duplicate requests', () => {
     assert.ok(src.includes('disabled={loadingMore}'), 'loadingMore disabled guard missing')
   })
 
-  it('diff toggle short-circuits to show cached diff without a server call (gap-028)', () => {
+  it('diff toggle short-circuits to show cached diff without a server call', () => {
     assert.ok(
       src.includes('else if diffData[String(v.id)]'),
       'diff cache-hit branch missing - every click would fire a new server round-trip'
@@ -520,27 +524,27 @@ describe('src/pages/history/[model]/[id].arc', () => {
 
   // ── UI copy & empty states ───────────────────────────────────────────────────
 
-  it('anonymous/system entries show "System" label with anon CSS class (gap-020)', () => {
+  it('anonymous/system entries show "System" label with anon CSS class', () => {
     assert.ok(src.includes('history-user--anon'), 'anon CSS class missing')
     assert.ok(src.includes('"System"'), 'System label missing for anonymous entries')
   })
 
-  it('modal body discloses that revert preserves history ("nothing is lost") (gap-025)', () => {
+  it('modal body discloses that revert preserves history ("nothing is lost")', () => {
     assert.ok(
       src.includes('A new revert entry will be added to the history so nothing is lost'),
       'destructive-action disclosure copy missing from modal'
     )
   })
 
-  it('empty diff state shows "No field changes detected." message (gap-027)', () => {
+  it('empty diff state shows "No field changes detected." message', () => {
     assert.ok(src.includes('No field changes detected.'), 'empty diff copy missing')
   })
 
-  it('empty state shows "No history yet" copy (gap-018)', () => {
+  it('empty state shows "No history yet" copy', () => {
     assert.ok(src.includes('"No history yet"'), 'empty state copy missing')
   })
 
-  it('toast dismiss button clears revertDone state (gap-026)', () => {
+  it('toast dismiss button clears revertDone state', () => {
     assert.ok(src.includes('@revertDone = false'), 'toast dismiss handler missing')
   })
 })
@@ -573,27 +577,27 @@ describe('TypeScript type definitions', () => {
     assert.ok(src.includes('export interface ArcConfigWithVersioning'), 'ArcConfigWithVersioning missing')
   })
 
-  it('ArcVersion.data is typed as nullable string (gap-029)', () => {
+  it('ArcVersion.data is typed as nullable string', () => {
     assert.ok(src.includes('data: string | null'), 'data field not nullable - JSON.parse guard relies on this')
   })
 
-  it('ArcVersion.id is typed as number not string (gap-034)', () => {
+  it('ArcVersion.id is typed as number not string', () => {
     assert.ok(src.includes('id: number'), 'id must be number type - String(v.id) coercions depend on this')
   })
 
-  it('ArcVersion.userId is typed as nullable string (gap-030)', () => {
+  it('ArcVersion.userId is typed as nullable string', () => {
     assert.ok(src.includes('userId: string | null'), 'userId must be nullable - anonymous sessions must be representable')
   })
 
-  it('ArcVersion.userName is optional and nullable (gap-031)', () => {
+  it('ArcVersion.userName is optional and nullable', () => {
     assert.ok(src.includes('userName?: string | null'), 'userName must be optional - raw DB rows omit it')
   })
 
-  it('retentionDays is not in the public interface (gap-032)', () => {
+  it('retentionDays is not in the public interface', () => {
     assert.ok(!src.includes('retentionDays'), 'retentionDays must not appear in the exported interface - not yet implemented')
   })
 
-  it('ArcConfigWithVersioning.packages typed as string array (gap-033)', () => {
+  it('ArcConfigWithVersioning.packages typed as string array', () => {
     assert.ok(src.includes('packages: string[]'), 'packages must be string[] not a union type')
   })
 })
