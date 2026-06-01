@@ -77,8 +77,8 @@ describe('src/server/versions.arc', () => {
   })
 
   it('revert route validates model and recordId match', () => {
-    assert.ok(src.includes('ver.modelName != params.model'), 'model mismatch check missing')
-    assert.ok(src.includes('ver.recordId != params.id'), 'recordId mismatch check missing')
+    assert.ok(src.includes('ver.modelName !== params.model'), 'model mismatch check missing')
+    assert.ok(src.includes('ver.recordId !== params.id'), 'recordId mismatch check missing')
   })
 })
 
@@ -112,8 +112,8 @@ describe('src/pages/history/[model]/[id].arc', () => {
   })
 
   it('revertToVersion guards against non-admin/editor', () => {
-    assert.ok(src.includes("session.role != \"admin\""), 'role check missing')
-    assert.ok(src.includes("session.role != \"editor\""), 'editor role check missing')
+    assert.ok(src.includes("session.role !== \"admin\""), 'role check missing')
+    assert.ok(src.includes("session.role !== \"editor\""), 'editor role check missing')
   })
 
   it('renders action badges for all four action types', () => {

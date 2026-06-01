@@ -10,7 +10,10 @@
 
 Please **do not** open a public GitHub issue for security vulnerabilities.
 
-Email **kobecuppens@gmail.com** with:
+Use GitHub's private vulnerability reporting:
+**[Report a vulnerability](https://github.com/arc-language/arc-versioning/security/advisories/new)**
+
+Include:
 - Description of the vulnerability
 - Steps to reproduce
 - Potential impact

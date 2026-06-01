@@ -19,4 +19,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - name: Run tests
-        run: node --test tests/*.test.js
+        run: npm test
+      - name: Security audit
+        run: npm audit --audit-level=moderate
