@@ -1,0 +1,47 @@
+{
+  "name": "arc-versioning",
+  "version": "0.1.0",
+  "description": "Automatic model versioning and history for Arc — every mutation snapshotted, one-click revert",
+  "main": "src/index.js",
+  "types": "src/types/index.d.ts",
+  "files": [
+    "src/",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:coverage": "node --test --experimental-test-coverage tests/*.test.js"
+  },
+  "keywords": [
+    "arc",
+    "versioning",
+    "history",
+    "audit-log",
+    "revert",
+    "cms",
+    "django-reversion",
+    "django-simple-history"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arc-language/arc-versioning.git"
+  },
+  "homepage": "https://arc-lang.com/docs/versioning",
+  "bugs": {
+    "url": "https://github.com/arc-language/arc-versioning/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "peerDependencies": {
+    "@arc-lang/arc": ">=0.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@arc-lang/arc": { "optional": true }
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
