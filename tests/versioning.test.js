@@ -100,6 +100,36 @@ describe('src/server/versions.arc', () => {
     assert.ok(src.includes('Number.isInteger'), 'versionId integer check missing')
     assert.ok(src.includes("Invalid versionId"), 'versionId error response missing')
   })
+
+  // ── Round 1 gaps ────────────────────────────────────────────────────────────
+
+  it('revert route strips id/createdAt/updatedAt from snapshot before db.update (gap-009)', () => {
+    assert.ok(
+      src.includes('const { id, createdAt, updatedAt, ...fields } = snapshot'),
+      'snapshot field strip missing — revert would overwrite primary key with historic id'
+    )
+  })
+
+  it('diff route returns 400 when versionId does not match model+recordId (gap-003)', () => {
+    assert.ok(
+      src.includes('return json({ error: "Version does not match record" }, 400)'),
+      'mismatch 400 response missing on diff route'
+    )
+  })
+
+  it('all version-lookup routes return 404 when record is not found (gap-002)', () => {
+    assert.ok(
+      src.includes('return json({ error: "Version not found" }, 404)'),
+      '404 response missing for not-found version'
+    )
+  })
+
+  it('routes return 500 with "Version data is corrupt" on JSON.parse failure (gap-004)', () => {
+    assert.ok(
+      src.includes('return json({ error: "Version data is corrupt" }, 500)'),
+      'corrupt-data 500 response missing'
+    )
+  })
 })
 
 // ── history page file tests ────────────────────────────────────────────────────
@@ -202,6 +232,15 @@ describe('src/pages/history/[model]/[id].arc', () => {
   it('paginates via load-more', () => {
     assert.ok(src.includes('Load more'), 'load more button missing')
     assert.ok(src.includes('hasMore'), 'hasMore check missing')
+  })
+
+  // ── Round 1 gaps ────────────────────────────────────────────────────────────
+
+  it('revert button is suppressed for delete-action entries (gap-019)', () => {
+    assert.ok(
+      src.includes('if v.action != "delete"'),
+      'no-revert-on-delete guard missing — delete entries must not have a revert button'
+    )
   })
 })
 
