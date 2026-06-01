@@ -169,6 +169,22 @@ describe('src/server/versions.arc', () => {
       'nullable userId fallback missing — anonymous reverts must record null not undefined'
     )
   })
+
+  // ── Round 4 gaps ────────────────────────────────────────────────────────────
+
+  it('history response includes page field for client cursor tracking (gap-007)', () => {
+    assert.ok(
+      src.includes('json({ versions: versions.map(v => ({ ...v, userName: userMap[String(v.userId)] || null })), hasMore, page })'),
+      'page field missing from history response shape'
+    )
+  })
+
+  it('revert response includes revertedToVersionId field (gap-008)', () => {
+    assert.ok(
+      src.includes('revertedToVersionId: Number(params.versionId)'),
+      'revertedToVersionId missing from revert success response'
+    )
+  })
 })
 
 // ── history page file tests ────────────────────────────────────────────────────
@@ -320,6 +336,22 @@ describe('src/pages/history/[model]/[id].arc', () => {
       'page cursor reset after revert missing — load-more would skip the new revert entry'
     )
   })
+
+  // ── Round 4 gaps ────────────────────────────────────────────────────────────
+
+  it('revertToVersion catches transaction errors with e?.message fallback (gap-017)', () => {
+    assert.ok(
+      src.includes('return { error: e?.message || "Revert failed" }'),
+      'transaction error message propagation missing in page server fn'
+    )
+  })
+
+  it('confirmation modal has full ARIA attributes for screen readers (gap-024)', () => {
+    assert.ok(src.includes('role="dialog"'), 'role=dialog missing')
+    assert.ok(src.includes('aria-modal="true"'), 'aria-modal missing')
+    assert.ok(src.includes('aria-labelledby="history-modal-title"'), 'aria-labelledby missing')
+    assert.ok(src.includes('aria-describedby="history-modal-desc"'), 'aria-describedby missing')
+  })
 })
 
 // ── TypeScript type definitions ────────────────────────────────────────────────
@@ -348,5 +380,11 @@ describe('TypeScript type definitions', () => {
 
   it('exports ArcConfigWithVersioning', () => {
     assert.ok(src.includes('export interface ArcConfigWithVersioning'), 'ArcConfigWithVersioning missing')
+  })
+
+  // ── Round 4 gaps ────────────────────────────────────────────────────────────
+
+  it('ArcVersion.data is typed as nullable string (gap-029)', () => {
+    assert.ok(src.includes('data: string | null'), 'data field not nullable — JSON.parse guard relies on this')
   })
 })
