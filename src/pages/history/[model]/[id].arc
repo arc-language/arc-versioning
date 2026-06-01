@@ -8,6 +8,9 @@ page "Record History - Admin"
   @server fn getHistory(modelName: String, recordId: String, page: Number, includeTotal: Boolean) -> Any
     if !session || (session.role !== "admin" && session.role !== "editor")
       return { error: "forbidden", versions: [], hasMore: false, page: 1, total: 0 }
+    const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
+    if !_allowed.has(modelName)
+      return { error: "Unknown model", versions: [], hasMore: false, page: 1, total: 0 }
     try
       const limit = 20
       const offset = (page - 1) * limit
@@ -37,6 +40,9 @@ page "Record History - Admin"
   @server fn getVersionDiff(versionId: String, modelName: String, recordId: String) -> Any
     if !session || (session.role !== "admin" && session.role !== "editor")
       return { error: "forbidden", diff: [] }
+    const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
+    if !_allowed.has(modelName)
+      return { error: "Unknown model", diff: [] }
     const ver = db._arc_versions.find(versionId)
     if !ver return { error: "Not found", diff: [] }
     if ver.modelName !== modelName || ver.recordId !== recordId
@@ -63,7 +69,7 @@ page "Record History - Admin"
   @server fn revertToVersion(versionId: String, modelName: String, recordId: String) -> Any
     if !session || (session.role !== "admin" && session.role !== "editor")
       return { error: "forbidden" }
-    const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_')))
+    const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
     if !_allowed.has(modelName)
       return { error: "Unknown model" }
     const ver = db._arc_versions.find(versionId)
@@ -76,18 +82,21 @@ page "Record History - Admin"
     catch
       return { error: "Version data is corrupt" }
     const { id, createdAt, updatedAt, ...fields } = snapshot
-    return _db.transaction(() => {
-      db[modelName].update(recordId, fields)
-      db._arc_versions.create({
-        modelName,
-        recordId,
-        action: "revert",
-        data: ver.data,
-        userId: session?.userId ?? null,
-        createdAt: new Date().toISOString()
-      })
-      return { ok: true }
-    })()
+    try
+      return _db.transaction(() => {
+        db[modelName].update(recordId, fields)
+        db._arc_versions.create({
+          modelName,
+          recordId,
+          action: "revert",
+          data: ver.data,
+          userId: session?.userId ?? null,
+          createdAt: new Date().toISOString()
+        })
+        return { ok: true }
+      })()
+    catch e
+      return { error: e?.message || "Revert failed" }
 
   @live const historyData = getHistory(model, id, 1, true)
 
@@ -111,9 +120,16 @@ page "Record History - Admin"
       row align="center" justify="space-between"
         col gap="2px"
           text class="history-title" "Version History"
-          text class="history-meta" "Model: {model} · Record #{id} · {historyData.total} versions total"
+          if historyError == ""
+            text class="history-meta" "Model: {model} · Record #{id} · {historyData.total} versions total"
+          if historyError != ""
+            text class="history-meta" "Model: {model} · Record #{id}"
 
-      if historyError != ""
+      if historyError == "forbidden"
+        col class="!card history-error-state" p="24px" gap="8px" align="center"
+          text class="history-error-msg" "You do not have permission to view version history."
+
+      if historyError != "" && historyError != "forbidden"
         col class="!card history-error-state" p="24px" gap="8px" align="center"
           text class="history-error-msg" "Failed to load history. Please refresh."
 
@@ -201,8 +217,9 @@ page "Record History - Admin"
             if loadingMore "Loading…" else "Load more"
           if loadMoreError != ""
             text class="history-load-error" "{loadMoreError}"
-          if diffError != ""
-            text class="history-load-error" "Diff failed: {diffError}"
+
+      if diffError != ""
+        text class="history-load-error" "Diff failed: {diffError}"
 
       if confirmId != ""
         col class="history-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="history-modal-title" aria-describedby="history-modal-desc" on:keydown={

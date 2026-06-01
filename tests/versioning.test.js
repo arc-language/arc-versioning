@@ -81,13 +81,19 @@ describe('src/server/versions.arc', () => {
     assert.ok(src.includes('ver.recordId !== params.id'), 'recordId mismatch check missing')
   })
 
-  it('revert route uses model allowlist to prevent injection', () => {
-    assert.ok(src.includes("!m.startsWith('_arc_')"), 'allowlist filter missing')
-    assert.ok(src.includes('_allowed.has(params.model)'), 'allowlist check missing')
+  it('all three routes use model allowlist to prevent injection', () => {
+    assert.ok(src.includes("typeof db[m]?.update === 'function'"), 'allowlist type guard missing')
+    const allowlistCount = (src.match(/_allowed\d*\.has\(/g) || []).length
+    assert.ok(allowlistCount >= 3, `expected allowlist check on all 3 routes, found ${allowlistCount}`)
   })
 
-  it('revert route wraps update and audit in a transaction', () => {
-    assert.ok(src.includes('_db.transaction'), 'transaction missing')
+  it('revert route wraps update and audit in an invoked transaction', () => {
+    assert.ok(src.includes('_db.transaction('), 'transaction call missing')
+    assert.ok(src.includes('})()'), 'transaction must be immediately invoked')
+  })
+
+  it('revert route catches transaction errors', () => {
+    assert.ok(src.includes("Revert failed"), 'transaction error handler missing')
   })
 })
 
@@ -137,13 +143,24 @@ describe('src/pages/history/[model]/[id].arc', () => {
     assert.ok(diffGuard.includes('session.role !== "admin"'), 'getVersionDiff auth guard missing')
   })
 
-  it('revertToVersion uses model allowlist to prevent injection', () => {
-    assert.ok(src.includes("!m.startsWith('_arc_')"), 'allowlist filter missing')
-    assert.ok(src.includes('_allowed.has(modelName)'), 'allowlist check missing')
+  it('all three server fns use model allowlist to prevent injection', () => {
+    assert.ok(src.includes("typeof db[m]?.update === 'function'"), 'allowlist type guard missing')
+    const allowlistCount = (src.match(/_allowed\.has\(/g) || []).length
+    assert.ok(allowlistCount >= 3, `expected allowlist on all 3 server fns, found ${allowlistCount}`)
   })
 
-  it('revertToVersion wraps update and audit in a transaction', () => {
-    assert.ok(src.includes('_db.transaction'), 'transaction missing')
+  it('revertToVersion wraps update and audit in an invoked transaction', () => {
+    assert.ok(src.includes('_db.transaction('), 'transaction call missing')
+    assert.ok(src.includes('})()'), 'transaction must be immediately invoked')
+  })
+
+  it('revertToVersion catches transaction errors', () => {
+    assert.ok(src.includes('Revert failed'), 'transaction error handler missing')
+  })
+
+  it('shows distinct forbidden vs generic error messages', () => {
+    assert.ok(src.includes('historyError == "forbidden"'), 'forbidden state check missing')
+    assert.ok(src.includes('You do not have permission'), 'forbidden message missing')
   })
 
   it('modal has Escape key handler and autofocus on cancel', () => {

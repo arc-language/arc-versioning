@@ -1,6 +1,9 @@
 @group "/admin/api" @auth(admin,editor)
 
   @route get "/versions/:model/:id" -> Response
+    const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
+    if !_allowed.has(params.model)
+      return json({ error: "Unknown model" }, 400)
     const page = Math.max(1, parseInt(request.query?.page, 10) || 1)
     const limit = 20
     const offset = (page - 1) * limit
@@ -20,6 +23,9 @@
     json({ versions: versions.map(v => ({ ...v, userName: userMap[String(v.userId)] || null })), hasMore, page })
 
   @route get "/versions/:model/:id/:versionId" -> Response
+    const _allowed2 = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
+    if !_allowed2.has(params.model)
+      return json({ error: "Unknown model" }, 400)
     const ver = db._arc_versions.find(params.versionId)
     if !ver
       return json({ error: "Version not found" }, 404)
@@ -45,8 +51,8 @@
     json({ version: ver, diff })
 
   @route post "/versions/:model/:id/revert/:versionId" -> Response
-    const _allowed = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_')))
-    if !_allowed.has(params.model)
+    const _allowed3 = new Set(Object.keys(db).filter(m => !m.startsWith('_arc_') && typeof db[m]?.update === 'function'))
+    if !_allowed3.has(params.model)
       return json({ error: "Unknown model" }, 400)
     const ver = db._arc_versions.find(params.versionId)
     if !ver
@@ -59,16 +65,20 @@
     catch
       return json({ error: "Version data is corrupt" }, 500)
     const { id, createdAt, updatedAt, ...fields } = snapshot
-    const _revertResult = _db.transaction(() => {
-      db[params.model].update(params.id, fields)
-      db._arc_versions.create({
-        modelName: params.model,
-        recordId: params.id,
-        action: "revert",
-        data: ver.data,
-        userId: session?.userId ?? null,
-        createdAt: new Date().toISOString()
-      })
-      return { ok: true, revertedToVersionId: Number(params.versionId) }
-    })()
+    let _revertResult
+    try
+      _revertResult = _db.transaction(() => {
+        db[params.model].update(params.id, fields)
+        db._arc_versions.create({
+          modelName: params.model,
+          recordId: params.id,
+          action: "revert",
+          data: ver.data,
+          userId: session?.userId ?? null,
+          createdAt: new Date().toISOString()
+        })
+        return { ok: true, revertedToVersionId: Number(params.versionId) }
+      })()
+    catch e
+      return json({ error: "Revert failed" }, 500)
     json(_revertResult)
