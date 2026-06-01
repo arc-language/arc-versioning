@@ -41,6 +41,9 @@
   "peerDependenciesMeta": {
     "@arc-lang/arc": { "optional": true }
   },
+  "devDependencies": {
+    "@arc-lang/arc": ">=0.2.0"
+  },
   "publishConfig": {
     "access": "public"
   }

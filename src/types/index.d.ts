@@ -15,11 +15,6 @@ export interface VersioningConfig {
   maxVersionsPerRecord?: number
   /** Model table names to exclude from versioning. Default: [] */
   excludeModels?: string[]
-  /**
-   * @internal Not yet implemented - reserved for a future retention policy.
-   * Do not rely on this field having any effect.
-   */
-  retentionDays?: number | null
 }
 
 // arc.config.json shape when arc-versioning is installed

@@ -26,7 +26,7 @@ page "Record History - Admin"
       const users = userIds.length
         ? db.users.findMany({ where: { id: { in: userIds } }, limit: Math.min(userIds.length, 20) })
         : []
-      const userMap = Object.fromEntries(users.map(u => [String(u.id), u.name || u.email || "Unknown"]))
+      const userMap = Object.fromEntries(users.map(u => [String(u.id), u.name || u.email || null]))
       const total = includeTotal ? db._arc_versions.count({ where: { modelName, recordId } }) : 0
       return {
         versions: versions.map(v => ({ ...v, userName: userMap[String(v.userId)] || null })),
@@ -107,18 +107,21 @@ page "Record History - Admin"
   @state let page = 1
   @state let versions = historyData.versions
   @state let hasMore = historyData.hasMore
+  @state let total = historyData.total
   @state let historyError = historyData.error || ""
+
   @state let expandedId = ""
   @state let diffLoadingId = ""
   @state let diffData = {}
+  @state let diffError = ""
+
   @state let confirmId = ""
   @state let reverting = false
   @state let revertDone = false
   @state let revertError = ""
-  @state let total = historyData.total
+
   @state let loadingMore = false
   @state let loadMoreError = ""
-  @state let diffError = ""
 
   CmsLayout title="Version History" active=""
     col gap="20px"

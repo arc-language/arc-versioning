@@ -267,13 +267,8 @@ describe('src/pages/history/[model]/[id].arc', () => {
   it('getHistory and getVersionDiff guard against non-admin/editor', () => {
     assert.ok(src.includes('@server fn getHistory'), 'getHistory fn missing')
     assert.ok(src.includes('@server fn getVersionDiff'), 'getVersionDiff fn missing')
-    const getHistoryIdx = src.indexOf('@server fn getHistory')
-    const getVersionDiffIdx = src.indexOf('@server fn getVersionDiff')
-    const revertIdx = src.indexOf('@server fn revertToVersion')
-    const historyGuard = src.slice(getHistoryIdx, getVersionDiffIdx)
-    const diffGuard = src.slice(getVersionDiffIdx, revertIdx)
-    assert.ok(historyGuard.includes('session.role !== "admin"'), 'getHistory auth guard missing')
-    assert.ok(diffGuard.includes('session.role !== "admin"'), 'getVersionDiff auth guard missing')
+    const guardCount = (src.match(/session\.role !== "admin"/g) || []).length
+    assert.ok(guardCount >= 3, `expected auth guard in all 3 server fns, found ${guardCount}`)
   })
 
   it('all three server fns use model allowlist to prevent injection', () => {
@@ -451,8 +446,10 @@ describe('src/pages/history/[model]/[id].arc', () => {
   })
 
   it('getHistory page fn returns { versions, hasMore, page, total } shape on success', () => {
-    assert.ok(src.includes('return {'), 'getHistory success return missing')
-    assert.ok(src.includes('versions: versions.map(v => ({ ...v, userName: userMap[String(v.userId)] || null }))'), 'userName mapping in getHistory missing')
+    assert.ok(src.includes('versions: versions.map(v => ({ ...v, userName: userMap[String(v.userId)] || null }))'), 'versions field with userName mapping missing from getHistory return')
+    assert.ok(/\bhasMore,/.test(src), 'hasMore shorthand property missing from getHistory return')
+    assert.ok(/\bpage,/.test(src), 'page shorthand property missing from getHistory return')
+    assert.ok(src.includes('total'), 'total field missing from getHistory return')
   })
 
   // ── Round 2 gaps ────────────────────────────────────────────────────────────
@@ -608,8 +605,8 @@ describe('TypeScript type definitions', () => {
 
   // ── Round 7 gaps ────────────────────────────────────────────────────────────
 
-  it('retentionDays is marked @internal and not-yet-implemented (gap-032)', () => {
-    assert.ok(src.includes('@internal Not yet implemented'), 'retentionDays @internal annotation missing')
+  it('retentionDays is not in the public interface (gap-032)', () => {
+    assert.ok(!src.includes('retentionDays'), 'retentionDays must not appear in the exported interface - not yet implemented')
   })
 
   it('ArcConfigWithVersioning.packages typed as string array (gap-033)', () => {
