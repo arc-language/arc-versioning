@@ -18,9 +18,5 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Install arc dev dependency
-        run: npm install
-        working-directory: packages/arc-versioning
       - name: Run tests
         run: node --test tests/*.test.js
-        working-directory: packages/arc-versioning
